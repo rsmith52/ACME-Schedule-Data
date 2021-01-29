@@ -25,6 +25,8 @@ from tqdm import tqdm
 url = "https://acme.wisc.edu/tools/schedule/schedule.php"
 login_secret = "login.secret"
 
+schedule_block_length = 0.5 # in hours
+
 #===================================================================
 # ACME Class
 #===================================================================
@@ -46,7 +48,7 @@ class ACME:
             self.password = f.readline()
     
     # Login to ACME
-    def login(self):
+    def Login(self):
         browser = webdriver.Chrome(options=self.options)
         browser.get(url)
 
@@ -71,7 +73,11 @@ class ACME:
     #===================================================================
     
     # Get Schedule Table by Date (as string)
-    def get_schedule_by_date(self, date):
+    def GetScheduleByDate(self, date=None):
+        # Default to today
+        if date == None:
+            date = self.DateToString(date.today())
+        
         # Access page for specified date
         new_url = url + '?date=' + date
         browser = self.browser
@@ -116,10 +122,10 @@ class ACME:
                     new_data.append(agents)
             df[col] = new_data
 
-        return df
+        return { date: df }
     
     # Get tables from last month
-    def get_tables_last_n_days(self, num_days=30):
+    def GetRecentSchedules(self, num_days=30):
         # Get last n days
         today = date.today()
         dates = []
@@ -130,16 +136,37 @@ class ACME:
         # Get tables for last n days
         tables = {}
         for day in tqdm(dates, desc="Scraping data by day"):
-            day_str = self.date_to_string(day)
-            table = self.get_schedule_by_date(day_str)
+            day_str = self.DateToString(day)
+            table = self.GetScheduleByDate(day_str)[day_str]
             tables[day_str] = table
 
         # Return all the tables
-        return tables         
+        return tables
+    
+    # Get hours worked by agent in set of tables
+    def GetAgentHours(self, tables, most_first=True):
+        # Keep track of all agents as they pop up
+        agent_hours = {}
+        
+        # Iterate through all provided data
+        for date in tables.keys():
+            for col in tables[date]:
+                for entry in tables[date][col]:
+                    if entry != None:
+                        for agent in entry:
+                            # Create entry for agent upon first listing
+                            if agent not in agent_hours:
+                                agent_hours[agent] = 0
+                            # Increment by half hour for each entry
+                            agent_hours[agent] += schedule_block_length
+        
+        # Return list sorted by most to least hours
+        agent_hours = {k: v for k, v in sorted(agent_hours.items(), key=lambda item: item[1], reverse=most_first)}
+        return agent_hours
              
              
     # Close the browser
-    def close(self):
+    def Close(self):
         self.browser.close()
     
     #===================================================================
@@ -150,7 +177,7 @@ class ACME:
     # String form = date=YYYY-MM-DD
 
     # URL String to Date
-    def string_to_date(self, string):
+    def StringToDate(self, string):
         parts = string.split('-')
         year = int(parts[0])
         month = int(parts[1])
@@ -159,7 +186,7 @@ class ACME:
         return date
 
     # Date to URL String
-    def date_to_string(self, date):
+    def DateToString(self, date):
         year = date.year
         month = date.month
         day = date.day
