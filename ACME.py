@@ -146,7 +146,7 @@ class ACME:
             day = start + timedelta(days=i)
             dates.append(day)
 
-        # Get tables for last n days
+        # Get tables for the month
         tables = {}
         for day in tqdm(dates, desc="Scraping data for month: " + str(month) + ", " + str(year)):
             day_str = self.DateToString(day)
@@ -156,8 +156,40 @@ class ACME:
         # Return all the tables in order from start of month
         return tables
     
-    # Get tables from last month (or n days)
-    def GetRecentSchedules(self, num_days=30):
+    # Get tables from all dates in range, returns no data if invalid range, end defaults to today
+    def GetSchedulesInRange(self, start_date, end_date=None):
+        # Get start date
+        start = self.StringToDate(start_date)
+        
+        # Set end of range as today if not given
+        if end_date == None:
+            end = date.today()
+        else:
+            end = self.StringToDate(end_date)
+
+        # Get all dates in provided range
+        num_days = (end - start).days;
+        if (num_days < 0):
+            return {}
+
+        # Get all dates in the range
+        dates = []
+        for i in range(num_days):
+            day = start + timedelta(days=i)
+            dates.append(day)
+
+        # Get tables for all dates in range
+        tables = {}
+        for day in tqdm(dates, desc="Scraping data for date range"):
+            day_str = self.DateToString(day)
+            table = self.GetScheduleByDate(day_str)[day_str]
+            tables[day_str] = table
+
+        # Return all the tables in order from start to end
+        return tables
+    
+    # Get tables from n days (defaults to a week)
+    def GetRecentSchedules(self, num_days=7):
         # Get last n days
         today = date.today()
         dates = []
