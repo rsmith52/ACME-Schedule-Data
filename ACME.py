@@ -28,6 +28,12 @@ login_secret = "login.secret"
 schedule_block_length = 0.5 # in hours
 
 #===================================================================
+# Constants
+#===================================================================
+
+days_in_months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+#===================================================================
 # ACME Class
 #===================================================================
 
@@ -73,13 +79,13 @@ class ACME:
     #===================================================================
     
     # Get Schedule Table by Date (as string)
-    def GetScheduleByDate(self, date=None):
+    def GetScheduleByDate(self, day=None):
         # Default to today
-        if date == None:
-            date = self.DateToString(date.today())
+        if day == None:
+            day = self.DateToString(date.today())
         
         # Access page for specified date
-        new_url = url + '?date=' + date
+        new_url = url + '?date=' + day
         browser = self.browser
         browser.get(new_url)
 
@@ -122,9 +128,35 @@ class ACME:
                     new_data.append(agents)
             df[col] = new_data
 
-        return { date: df }
+        return { day: df }
     
-    # Get tables from last month
+    # Get Schedule Tables by Month (and year) - MM, YYYY - defaults to this month
+    def GetSchedulesByMonth(self, month=None, year=None):
+        # Set starting point, defaulting to this month
+        if month == None:
+            month = date.today().month;
+        if year == None:
+            year = date.today().year
+        num_days = self.DaysInMonth(month, year)
+        start = self.StringToDate(str(year) + '-' + str(month) + '-' + str(1))
+
+        # Get all dates in the month
+        dates = []
+        for i in range(num_days):
+            day = start + timedelta(days=i)
+            dates.append(day)
+
+        # Get tables for last n days
+        tables = {}
+        for day in tqdm(dates, desc="Scraping data for month: " + str(month) + ", " + str(year)):
+            day_str = self.DateToString(day)
+            table = self.GetScheduleByDate(day_str)[day_str]
+            tables[day_str] = table
+
+        # Return all the tables in order from start of month
+        return tables
+    
+    # Get tables from last month (or n days)
     def GetRecentSchedules(self, num_days=30):
         # Get last n days
         today = date.today()
@@ -164,7 +196,6 @@ class ACME:
         agent_hours = {k: v for k, v in sorted(agent_hours.items(), key=lambda item: item[1], reverse=most_first)}
         return agent_hours
              
-             
     # Close the browser
     def Close(self):
         self.browser.close()
@@ -172,11 +203,8 @@ class ACME:
     #===================================================================
     # Utilities
     #===================================================================
-    
-    # Date conversion functions
-    # String form = date=YYYY-MM-DD
 
-    # URL String to Date
+    # URL String to Date: String form = date=YYYY-MM-DD
     def StringToDate(self, string):
         parts = string.split('-')
         year = int(parts[0])
@@ -185,9 +213,23 @@ class ACME:
         date = datetime.date(year=year, month=month, day=day)
         return date
 
-    # Date to URL String
+    # Date to URL String: String form = date=YYYY-MM-DD
     def DateToString(self, date):
         year = date.year
         month = date.month
         day = date.day
         return str(year) + '-' + str(month) + '-' + str(day)
+    
+    # Get days in month (MM, YYYY)
+    def DaysInMonth(self, month, year=None):
+        month = int(month) - 1
+        if (year == None):
+            year = int(date.today().year)
+        else:
+            year = int(year)
+        
+        # February Leap Year
+        if (month == 1 and year % 4 == 0):
+            return days_in_months[month] + 1
+        else:
+            return days_in_months[month]
