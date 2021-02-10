@@ -32,6 +32,20 @@ schedule_block_length = 0.5 # in hours
 #===================================================================
 
 days_in_months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+pay_rates = {
+    "Pick 1" : 10.25,
+    "Student Technical Writer" : 12.75,
+    "Student Developer" : 12.75,
+    "Student WiscIT Lead" : 13.75,
+    "Student Data & Metrics Lead" : 12.75,
+    "Level 2 Student Analyst" : 13.75,
+    "Student Team Lead" : 13.75
+}
+pay_raises = {
+    "Advanced Phone Agent" : 0.50,
+    "Chat/Email" : 0.50,
+    "HDQA" : 0.75
+}
 
 #===================================================================
 # ACME Class
