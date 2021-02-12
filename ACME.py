@@ -23,6 +23,7 @@ from tqdm import tqdm
 #===================================================================
     
 url = "https://acme.wisc.edu/tools/schedule/schedule.php"
+staff_url = "https://acme.wisc.edu/tools/staff/index.php"
 login_secret = "login.secret"
 
 schedule_block_length = 0.5 # in hours
@@ -32,17 +33,17 @@ schedule_block_length = 0.5 # in hours
 #===================================================================
 
 days_in_months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+default_pay = 10.25
 pay_rates = {
-    "Pick 1" : 10.25,
-    "Student Technical Writer" : 12.75,
-    "Student Developer" : 12.75,
-    "Student WiscIT Lead" : 13.75,
-    "Student Data & Metrics Lead" : 12.75,
-    "Level 2 Student Analyst" : 13.75,
-    "Student Team Lead" : 13.75
+    "Support Specialist" : 10.25, # Pick 1
+    "SLP Web Writer" : 12.75, # Student Technical Writer
+    "SLP Developer" : 12.75, # Student Developer
+    "SLP WiscIT Lead" : 13.75, # Student WiscIT Lead
+    "SLP Data Metrics Lead" : 12.75, # Student Data & Metrics Lead
+    "SLP Team Lead" : 13.75 # Student Team Lead
 }
 pay_raises = {
-    "Advanced Phone Agent" : 0.50,
+    "Pick 3" : 0.50, # Advanced Phone Agent
     "Chat/Email" : 0.50,
     "HDQA" : 0.75
 }
@@ -241,6 +242,67 @@ class ACME:
         # Return list sorted by most to least hours
         agent_hours = {k: v for k, v in sorted(agent_hours.items(), key=lambda item: item[1], reverse=most_first)}
         return agent_hours
+    
+    # Get estimated pay rate for agent based on listed position and trainings
+    def GetAgentPay(self, agent_code):
+        # Base Cases or Posted Shifts
+        if agent_code == "" or agent_code == "HDP1" or agent_code == "HDP2" or agent_code == "HDP3" or agent_code == "HDP4":
+            return 0
+        
+        # Direct browser to staff utility
+        browser = self.browser
+        browser.get(staff_url)
+
+        # Fill in 4 letter
+        agent_field = browser.find_element_by_name("login")
+        agent_field.send_keys(agent_code)
+        # Check include inactive box
+        inactive_field = browser.find_element_by_name("inactive")
+        inactive_field.click()
+        # Submit button
+        submit_field = browser.find_element_by_css_selector("[value='Search']")
+        submit_field.click()
+
+        # Get Job Titles
+        job_field = browser.find_element_by_xpath("//*[contains(text(),'Position')]/following-sibling::*")
+        base_job = job_field.text
+        # Get Trainings
+        trainings_field = job_field.find_element_by_xpath("./../following-sibling::*/*[2]")
+        items = trainings_field.find_elements_by_tag_name("li")
+        trainings = []
+        for item in items:
+            trainings.append(item.text)
+        
+        # Calculate pay
+        if base_job in pay_rates:
+            pay = pay_rates[base_job]
+        else:
+            pay = default_pay
+        if not "SLP" in base_job:
+            for pay_raise in pay_raises:
+                if pay_raise in trainings:
+                    pay += pay_raises[pay_raise]
+        
+        # Return the pay for this agent
+        return pay
+    
+    # Get the total cost of paying agents based on set of agent hours
+    def GetScheduleCost(self, tables, day_avg=False):
+        # Get hours worked by each agent in this data
+        agent_hours = self.GetAgentHours(tables)
+        
+        # Get pay for each agent
+        pay_rates = {}
+        agent_pay = {}
+        for agent in tqdm(agent_hours, desc="Scraping Data by Agent"):
+            pay_rates[agent] = self.GetAgentPay(agent)
+            agent_pay[agent] = pay_rates[agent] * agent_hours[agent]
+        
+        # Divide pay over time period if requested
+        if day_avg:
+            for agent in agent_pay:
+                agent_pay[agent] /= len(tables)
+        return agent_pay
              
     # Close the browser
     def Close(self):
