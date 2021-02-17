@@ -47,6 +47,26 @@ pay_raises = {
     "Chat/Email" : 0.50,
     "HDQA" : 0.75
 }
+role_groups = {
+    "ALL" : [
+        "HDQA", "Floor Supervisor", "Tech Store", "Phones", "Chat/Email", "Email", "HDQA (Remote)",
+        "Supervisor (Remote)", "Phones (FTE)", "Phones (Remote)", "Trainer/Phones", "Chat/Email (Remote)",
+        "Chat (Remote)", "Email (Remote)", "HDL1 Project", "Walk-in [Lead]", "Walk-in Counter", "Walk-in SD",
+        "Repair", "WiHD onsite FTE", "WiHD Appt", "STL Outreach", "Training", "Event", "Meeting"
+    ],
+    "ALL_STUDENTS" : [
+        "HDQA", "Tech Store", "Phones", "Chat/Email", "Email", "HDQA (Remote)", "Phones (Remote)",
+        "Trainer/Phones", "Chat/Email (Remote)", "Chat (Remote)", "Email (Remote)", "HDL1 Project", 
+        "Walk-in [Lead]", "Walk-in Counter", "Walk-in SD", "Repair", "WiHD Appt", "STL Outreach", "Training"
+    ],
+    "HDQA" : ["HDQA", "HDQA (Remote)"],
+    "STL" : ["HDL1 Project", "STL Outreach"],
+    "WALK_IN" : ["Tech Store", "Walk-in [Lead]", "Walk-in Counter", "Walk-in SD", "Repair", "WiHD onsite FTE", "WiHD Appt"],
+    "ALL_PHONES" : ["Phones", "Phones (FTE)", "Phones (Remote)", "Trainer/Phones"],
+    "ALL_CHAT_EMAIL" : ["Chat/Email", "Email", "Chat/Email (Remote)", "Chat (Remote)", "Email (Remote)"],
+    "ALL_TRAINING" : ["Trainer/Phones", "Chat/Email (Remote)", "Training"],
+    "MEETING_AND_EVENT" : ["Event", "Meeting"]
+}
 
 #===================================================================
 # ACME Class
@@ -67,6 +87,10 @@ class ACME:
         with open(login_secret) as f:
             self.user = f.readline()[:-1]
             self.password = f.readline()
+            
+        # Setup Cache
+        self.schedule_cache = {}
+        self.agent_pay_cache = {}
     
     # Login to ACME
     def Login(self):
@@ -98,6 +122,10 @@ class ACME:
         # Default to today
         if day == None:
             day = self.DateToString(date.today())
+        
+        # Check if table is in cache
+        if day in self.schedule_cache:
+            return { day: self.schedule_cache[day] }
         
         # Access page for specified date
         new_url = url + '?date=' + day
@@ -142,7 +170,9 @@ class ACME:
                     agents = [row[i:i+4] for i in range(0, len(row), 4)]
                     new_data.append(agents)
             df[col] = new_data
-
+        
+        # Cache and return schedule table
+        self.schedule_cache[day] = df
         return { day: df }
     
     # Get Schedule Tables by Month (and year) - MM, YYYY - defaults to this month
@@ -222,6 +252,16 @@ class ACME:
         # Return all the tables
         return tables
     
+    # Get filtered tables only including certain roles
+    def GetSchedulesByRole(self, tables, role):
+        # Check if role is a role group
+        if role in role_groups:
+            print("Is a role group")
+            
+        # Otherwise assume role is a specific role
+         
+        pass
+    
     # Get hours worked by agent in set of tables
     def GetAgentHours(self, tables, most_first=True):
         # Keep track of all agents as they pop up
@@ -249,45 +289,53 @@ class ACME:
         if agent_code == "" or agent_code == "HDP1" or agent_code == "HDP2" or agent_code == "HDP3" or agent_code == "HDP4":
             return 0
         
+        # Check if agent pay is in cache
+        if agent_code in self.agent_pay_cache:
+            return self.agent_pay_cache[agent_code]
+        
         # Direct browser to staff utility
         browser = self.browser
         browser.get(staff_url)
-
-        # Fill in 4 letter
-        agent_field = browser.find_element_by_name("login")
-        agent_field.send_keys(agent_code)
-        # Check include inactive box
-        inactive_field = browser.find_element_by_name("inactive")
-        inactive_field.click()
-        # Submit button
-        submit_field = browser.find_element_by_css_selector("[value='Search']")
-        submit_field.click()
-
-        # Get Job Titles
-        job_field = browser.find_element_by_xpath("//*[contains(text(),'Position')]/following-sibling::*")
-        base_job = job_field.text
-        # Get Trainings
-        trainings_field = job_field.find_element_by_xpath("./../following-sibling::*/*[2]")
-        items = trainings_field.find_elements_by_tag_name("li")
-        trainings = []
-        for item in items:
-            trainings.append(item.text)
         
-        # Calculate pay
-        if base_job in pay_rates:
-            pay = pay_rates[base_job]
-        else:
+        try:
+            # Fill in 4 letter
+            agent_field = browser.find_element_by_name("login")
+            agent_field.send_keys(agent_code)
+            # Check include inactive box
+            inactive_field = browser.find_element_by_name("inactive")
+            inactive_field.click()
+            # Submit button
+            submit_field = browser.find_element_by_css_selector("[value='Search']")
+            submit_field.click()
+
+            # Get Job Titles
+            job_field = browser.find_element_by_xpath("//*[contains(text(),'Position')]/following-sibling::*")
+            base_job = job_field.text
+            # Get Trainings
+            trainings_field = job_field.find_element_by_xpath("./../following-sibling::*/*[2]")
+            items = trainings_field.find_elements_by_tag_name("li")
+            trainings = []
+            for item in items:
+                trainings.append(item.text)
+
+            # Calculate pay
+            if base_job in pay_rates:
+                pay = pay_rates[base_job]
+            else:
+                pay = default_pay
+            if not "SLP" in base_job:
+                for pay_raise in pay_raises:
+                    if pay_raise in trainings:
+                        pay += pay_raises[pay_raise]
+        except:
             pay = default_pay
-        if not "SLP" in base_job:
-            for pay_raise in pay_raises:
-                if pay_raise in trainings:
-                    pay += pay_raises[pay_raise]
         
-        # Return the pay for this agent
+        # Cache and return the pay for this agent
+        self.agent_pay_cache[agent_code] = pay
         return pay
     
     # Get the total cost of paying agents based on set of agent hours
-    def GetScheduleCost(self, tables, day_avg=False):
+    def GetScheduleCost(self, tables, day_avg=False, total=False):
         # Get hours worked by each agent in this data
         agent_hours = self.GetAgentHours(tables)
         
@@ -302,7 +350,12 @@ class ACME:
         if day_avg:
             for agent in agent_pay:
                 agent_pay[agent] /= len(tables)
-        return agent_pay
+                
+        # Return either by agent or a total cost
+        if (total):
+            return sum(agent_pay.values())
+        else:
+            return agent_pay
              
     # Close the browser
     def Close(self):
