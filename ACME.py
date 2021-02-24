@@ -47,6 +47,8 @@ pay_raises = {
     "Chat/Email" : 0.50,
     "HDQA" : 0.75
 }
+non_agents = ["", "PETE", "HDP1", "HDP2", "HDP3", "HDP4"]
+fte_agents = ["YANG", "MIMO", "HPRI", "SSCH"]
 role_groups = {
     "ALL" : [
         "HDQA", "Floor Supervisor", "Tech Store", "Phones", "Chat/Email", "Email", "HDQA (Remote)",
@@ -59,7 +61,7 @@ role_groups = {
         "Trainer/Phones", "Chat/Email (Remote)", "Chat (Remote)", "Email (Remote)", "HDL1 Project", 
         "Walk-in [Lead]", "Walk-in Counter", "Walk-in SD", "Repair", "WiHD Appt", "STL Outreach", "Training"
     ],
-    "HDQA" : ["HDQA", "HDQA (Remote)"],
+    "ALL_HDQA" : ["HDQA", "HDQA (Remote)"],
     "STL" : ["HDL1 Project", "STL Outreach"],
     "WALK_IN" : ["Tech Store", "Walk-in [Lead]", "Walk-in Counter", "Walk-in SD", "Repair", "WiHD onsite FTE", "WiHD Appt"],
     "ALL_PHONES" : ["Phones", "Phones (FTE)", "Phones (Remote)", "Trainer/Phones"],
@@ -254,13 +256,28 @@ class ACME:
     
     # Get filtered tables only including certain roles
     def GetSchedulesByRole(self, tables, role):
-        # Check if role is a role group
+        # Setup list of included roles to keep
+        roles = []
+        
+        # Check if role is a role group, and add all included roles
         if role in role_groups:
-            print("Is a role group")
+            for matching_role in role_groups[role]:
+                roles.append(self.SimplifyString(matching_role))
+        # Otherwise assume role is a specific role and only add it
+        else:
+            roles.append(self.SimplifyString(role))
             
-        # Otherwise assume role is a specific role
-         
-        pass
+        # Go through tables and trim down to only selected roles
+        for date in tables.keys():
+            # Refresh the table to retrieve all roles lost in previous filters
+            tables[date] = self.GetScheduleByDate(date)[date]
+            for col in tables[date]:
+                # Remove columns not matching requested roles
+                if col not in roles:
+                    tables[date] = tables[date].drop(columns=[col])
+        
+        # Return the filtered tables
+        return tables
     
     # Get hours worked by agent in set of tables
     def GetAgentHours(self, tables, most_first=True):
@@ -285,8 +302,8 @@ class ACME:
     
     # Get estimated pay rate for agent based on listed position and trainings
     def GetAgentPay(self, agent_code):
-        # Base Cases or Posted Shifts
-        if agent_code == "" or agent_code == "HDP1" or agent_code == "HDP2" or agent_code == "HDP3" or agent_code == "HDP4":
+        # Base Cases, Posted Shifts, FTE Agents
+        if agent_code in non_agents or agent_code in fte_agents:
             return 0
         
         # Check if agent pay is in cache
@@ -344,7 +361,10 @@ class ACME:
         agent_pay = {}
         for agent in tqdm(agent_hours, desc="Scraping Data by Agent"):
             pay_rates[agent] = self.GetAgentPay(agent)
-            agent_pay[agent] = pay_rates[agent] * agent_hours[agent]
+            if (pay_rates[agent] == 0):
+                agent_pay.pop(agent, None)
+            else:
+                agent_pay[agent] = pay_rates[agent] * agent_hours[agent]
         
         # Divide pay over time period if requested
         if day_avg:
@@ -394,3 +414,16 @@ class ACME:
             return days_in_months[month] + 1
         else:
             return days_in_months[month]
+        
+    # Parse a string to be all lowercase, no symbols, no spaces
+    def SimplifyString(self, string):
+        # To lowercase
+        simple_string = string.lower()
+        # Replace spaces
+        simple_string = simple_string.replace(" ", "")
+        # Replace symbols
+        simple_string = simple_string.replace("-", "").replace("/", "").replace("\\", "")
+        # Replace brackets
+        simple_string = simple_string.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        
+        return simple_string
