@@ -17,6 +17,7 @@ from datetime import date, timedelta
 
 # Utility Imports
 from tqdm import tqdm
+import os
 
 #===================================================================
 # Settings
@@ -24,7 +25,7 @@ from tqdm import tqdm
     
 url = "https://acme.wisc.edu/tools/schedule/schedule.php"
 staff_url = "https://acme.wisc.edu/tools/staff/index.php"
-login_secret = "login.secret"
+login_secret = os.path.join("secrets", "login.secret")
 
 schedule_block_length = 0.5 # in hours
 
