@@ -65,6 +65,67 @@
       
     <main class="uw-pad-xl" id="main">
       <div class="uw-body">
+          
+          
+          <h1>ACME Schedule Tool</h1>
+          <form action="./">
+              <h2 class="uw-mini-bar">Set Date Range</h2>
+              <fieldset>
+                  <legend>Start Date</legend>
+                  <input type="date" id="start_date" name="start_date">
+              </fieldset>
+              <fieldset>
+                  <legend>End Date</legend>
+                  <input type="date" id="end_date" name="end_date">
+              </fieldset>
+              
+              <h2 class="uw-mini-bar">Set Filter</h2>
+              <fieldset>
+                  <legend>Role Filters</legend>
+                  <label><input name="radio" type="radio" value="1" checked> All</label>
+                  <label><input name="radio" type="radio" value="2"> Only Students</label>
+                  <label><input name="radio" type="radio" value="3"> Only HDQA</label>
+                  <label><input name="radio" type="radio" value="4"> Only STL</label>
+                  <label><input name="radio" type="radio" value="5"> Only Walk In</label>
+                  <label><input name="radio" type="radio" value="6"> Only Phones</label>
+                  <label><input name="radio" type="radio" value="7"> Only Chat/Email</label>
+                  <label><input name="radio" type="radio" value="8"> Only Training</label>
+                  <label><input name="radio" type="radio" value="9"> Only Meetings and Events</label>
+              </fieldset>
+              
+              <h2 class="uw-mini-bar">Advanced Options</h2>
+              <fieldset>
+                  <legend>Agent Hours Options</legend>
+                  <label><input name="checkbox1" type="checkbox" value="1" checked> Order Most Hours First</label>
+              </fieldset>
+              <fieldset>
+                  <legend>Schedule Cost Options</legend>
+                  <label><input name="checkbox1" type="checkbox" value="1" checked> Show Total Cost</label>
+                  <label><input name="checkbox2" type="checkbox" value="2"> Show Agent Cost as Day Average</label>
+              </fieldset>
+              
+              <button class="uw-button">Get Data</button>
+          </form>
+          
+          <h2 class="uw-mini-bar">Results</h2>
+          <table>
+              <thead>
+                  <tr>
+                      <th scope="col">Agent</th>
+                      <th scope="col">Hours</th>
+                      <th scope="col">Estimated Pay Rate</th>
+                      <th scope="col">Cost</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <tr>
+                      <th scope="row">RAYS</th>
+                      <td>40</td>
+                      <td>$13</td>
+                      <td>$520</td>
+                  </tr>
+              </tbody>
+          </table>
 
       </div>
     </main>
