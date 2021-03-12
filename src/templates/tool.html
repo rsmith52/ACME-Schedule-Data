@@ -68,7 +68,7 @@
           
           
           <h1>ACME Schedule Tool</h1>
-          <form action="./">
+          <form action="/results" method="post">
               <h2 class="uw-mini-bar">Set Date Range</h2>
               <fieldset>
                   <legend>Start Date</legend>
@@ -104,28 +104,11 @@
                   <label><input name="checkbox2" type="checkbox" value="2"> Show Agent Cost as Day Average</label>
               </fieldset>
               
-              <button class="uw-button">Get Data</button>
+              <button class="uw-button" type="submit">Get Data</button>
           </form>
           
           <h2 class="uw-mini-bar">Results</h2>
-          <table>
-              <thead>
-                  <tr>
-                      <th scope="col">Agent</th>
-                      <th scope="col">Hours</th>
-                      <th scope="col">Estimated Pay Rate</th>
-                      <th scope="col">Cost</th>
-                  </tr>
-              </thead>
-              <tbody>
-                  <tr>
-                      <th scope="row">RAYS</th>
-                      <td>40</td>
-                      <td>$13</td>
-                      <td>$520</td>
-                  </tr>
-              </tbody>
-          </table>
+          {{ table }}
 
       </div>
     </main>

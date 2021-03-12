@@ -3,7 +3,7 @@
 #===================================================================
 
 # Flask Imports
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 
 # Backend Imports
 from ACME import ACME
@@ -21,6 +21,9 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 
+acme = None
+current_table = None
+
 #===================================================================
 # Routes
 #===================================================================
@@ -31,11 +34,32 @@ def home():
 
 @app.route('/tool')
 def tool():
-    return render_template("tool.html")
+    global current_table
+    return render_template("tool.html", table=current_table)
+
+@app.route('/results', methods = ['POST'])
+def results():
+    start_date = request.form['start_date']
+    print(start_date)
+    return render_template("tool.html", table=current_table)
+
+#===================================================================
+# App Functionality
+#===================================================================
+
+def StartACME():
+    global acme
+    
+    acme = ACME(True)
+    acme.Login()
+
+def BuildTable():
+    pass
 
 #===================================================================
 # Run App
 #===================================================================
 
+StartACME()
 if __name__ == '__main__':
     app.run(debug=True)
