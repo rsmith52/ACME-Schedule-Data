@@ -25,6 +25,31 @@ acme = None
 current_table = None
 
 #===================================================================
+# App Functionality
+#===================================================================
+
+role_groups = [
+    "ALL",
+    "ALL_STUDENTS",
+    "ALL_HDQA",
+    "STL",
+    "WALK_IN",
+    "ALL_PHONES",
+    "ALL_CHAT_EMAIL",
+    "ALL_TRAINING",
+    "MEETING_AND_EVENT"
+]
+
+def StartACME():
+    global acme
+    
+    acme = ACME(True)
+    acme.Login()
+
+def BuildTable():
+    pass
+
+#===================================================================
 # Routes
 #===================================================================
 
@@ -37,24 +62,37 @@ def tool():
     global current_table
     return render_template("tool.html", table=current_table)
 
-@app.route('/results', methods = ['POST'])
+@app.route('/results', methods = ['GET', 'POST'])
 def results():
-    start_date = request.form['start_date']
-    print(start_date)
+    # Get request from form data
+    form_data = request.form.to_dict(flat=False)
+
+    start_date = form_data['start_date'][0]
+    end_date = form_data['end_date'][0]
+    role_group = role_groups[int(form_data['role'][0]) - 1]
+    if 'most_first' in form_data:
+        most_first = True
+    else:
+        most_first = False
+    options = [0, 0]
+    if 'options_1' in form_data:
+        options[0] = True
+        
+    else:
+        options[0] = False
+    if 'options_2' in form_data:
+        options[1] = True
+        
+    else:
+        options[1] = False
+    
+    BuildTable(start_date, end_date, role_group, most_first, options)
+    
     return render_template("tool.html", table=current_table)
 
 #===================================================================
-# App Functionality
-#===================================================================
-
-def StartACME():
-    global acme
-    
-    acme = ACME(True)
-    acme.Login()
-
-def BuildTable():
-    pass
+# App Utility
+#===================================================================  
 
 #===================================================================
 # Run App
