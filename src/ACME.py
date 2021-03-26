@@ -216,7 +216,7 @@ class ACME:
             end = self.StringToDate(end_date)
 
         # Get all dates in provided range
-        num_days = (end - start).days;
+        num_days = (end - start).days + 1;
         if (num_days < 0):
             return {}
 
@@ -362,10 +362,10 @@ class ACME:
         agent_pay = {}
         for agent in tqdm(agent_hours, desc="Scraping Data by Agent"):
             pay_rates[agent] = self.GetAgentPay(agent)
-            if (pay_rates[agent] == 0):
-                agent_pay.pop(agent, None)
-            else:
-                agent_pay[agent] = pay_rates[agent] * agent_hours[agent]
+            # if (pay_rates[agent] == 0):
+            #     agent_pay.pop(agent, None)
+            # else:
+            agent_pay[agent] = pay_rates[agent] * agent_hours[agent]
         
         # Divide pay over time period if requested
         if day_avg:

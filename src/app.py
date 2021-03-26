@@ -22,7 +22,7 @@ app = Flask(__name__,
             template_folder='templates')
 
 acme = None
-current_table = None
+current_results = None
 
 #===================================================================
 # App Functionality
@@ -46,8 +46,25 @@ def StartACME():
     acme = ACME(True)
     acme.Login()
 
-def BuildTable():
-    pass
+def BuildTable(start_date, end_date, role_group, most_first, options):
+    global current_results
+    
+    # Get data to work with
+    data = acme.GetSchedulesInRange(start_date, end_date)
+    # Filter by role
+    filtered_data = acme.GetSchedulesByRole(data, role_group)
+    # Get agent hours
+    agent_hours = acme.GetAgentHours(filtered_data, most_first)
+    # Get agent cost
+    agent_cost = acme.GetScheduleCost(filtered_data)
+    # Get total schedule cost
+    total_cost = acme.GetScheduleCost(filtered_data, total=True)
+    
+    print(len(agent_hours))
+    print(len(agent_cost))
+    print(total_cost)
+    
+    current_results = total_cost
 
 #===================================================================
 # Routes
@@ -60,7 +77,7 @@ def home():
 @app.route('/tool')
 def tool():
     global current_table
-    return render_template("tool.html", table=current_table)
+    return render_template("tool.html", results=current_results)
 
 @app.route('/results', methods = ['GET', 'POST'])
 def results():
@@ -88,7 +105,7 @@ def results():
     
     BuildTable(start_date, end_date, role_group, most_first, options)
     
-    return render_template("tool.html", table=current_table)
+    return render_template("tool.html", results=current_results)
 
 #===================================================================
 # App Utility
