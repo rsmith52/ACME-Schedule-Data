@@ -7,6 +7,7 @@ from flask import Flask, request, render_template, redirect
 
 # Backend Imports
 from ACME import ACME
+import pandas as pd
 
 # Utility Imports
 import os
@@ -60,11 +61,20 @@ def BuildTable(start_date, end_date, role_group, most_first, options):
     # Get total schedule cost
     total_cost = acme.GetScheduleCost(filtered_data, total=True)
     
-    print(len(agent_hours))
-    print(len(agent_cost))
-    print(total_cost)
+    # print(len(agent_hours))
+    # print(len(agent_cost))
+    # print(total_cost)
     
-    current_results = total_cost
+    keys = agent_hours.keys()
+    data = {}
+    for key in keys:
+        data[key] = []
+        data[key].append(agent_hours[key])
+        data[key].append(agent_cost[key])
+    df = pd.DataFrame(data).transpose()
+    df.columns = ["Hours", "Cost"]
+    
+    current_results = df.to_html()
 
 #===================================================================
 # Routes
@@ -76,7 +86,6 @@ def home():
 
 @app.route('/tool')
 def tool():
-    global current_table
     return render_template("tool.html", results=current_results)
 
 @app.route('/results', methods = ['GET', 'POST'])
@@ -94,16 +103,15 @@ def results():
     options = [0, 0]
     if 'options_1' in form_data:
         options[0] = True
-        
     else:
         options[0] = False
     if 'options_2' in form_data:
         options[1] = True
-        
     else:
         options[1] = False
     
-    BuildTable(start_date, end_date, role_group, most_first, options)
+    if start_date != "" and end_date != "":
+        BuildTable(start_date, end_date, role_group, most_first, options)
     
     return render_template("tool.html", results=current_results)
 
