@@ -6,6 +6,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Data Handling Imports
 import numpy as np
@@ -22,7 +23,9 @@ import os
 #===================================================================
 # Settings
 #===================================================================
-    
+
+driver_version = "90.0.4430.24"
+
 url = "https://acme.wisc.edu/tools/schedule/schedule.php"
 staff_url = "https://acme.wisc.edu/tools/staff/index.php"
 login_secret = os.path.join("src", "secrets", "login.secret")
@@ -97,7 +100,7 @@ class ACME:
     
     # Login to ACME
     def Login(self):
-        browser = webdriver.Chrome(options=self.options)
+        browser = webdriver.Chrome(ChromeDriverManager(version=driver_version).install(), options=self.options)
         browser.get(url)
 
         # Fill in username

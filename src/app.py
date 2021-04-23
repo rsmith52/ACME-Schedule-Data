@@ -23,7 +23,6 @@ app = Flask(__name__,
             template_folder='templates')
 
 acme = None
-current_results = None
 
 #===================================================================
 # App Functionality
@@ -74,7 +73,9 @@ def BuildTable(start_date, end_date, role_group, most_first, options):
     df = pd.DataFrame(data).transpose()
     df.columns = ["Hours", "Cost"]
     
-    current_results = df.to_html()
+    html = "<strong>Total Cost: </strong><p>$" + str(total_cost) + "</p><br>"
+    html += df.to_html()
+    return html
 
 #===================================================================
 # Routes
@@ -86,7 +87,7 @@ def home():
 
 @app.route('/tool')
 def tool():
-    return render_template("tool.html", results=current_results)
+    return render_template("tool.html", results=None)
 
 @app.route('/results', methods = ['GET', 'POST'])
 def results():
@@ -110,8 +111,9 @@ def results():
     else:
         options[1] = False
     
+    current_results = None
     if start_date != "" and end_date != "":
-        BuildTable(start_date, end_date, role_group, most_first, options)
+        current_results = BuildTable(start_date, end_date, role_group, most_first, options)
     
     return render_template("tool.html", results=current_results)
 
